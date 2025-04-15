@@ -40,8 +40,8 @@ public class Login extends JFrame {
             if (rs.next()) {
                 mostrarMensaje(" Bienvenido de nuevo  has iniciado con exito");
                 this.dispose();
-                Usuarios usuarios = new Usuarios();
-                usuarios.setVisible(true);
+                Menu menu = new Menu();
+                menu.setVisible(true);
             } else {
                 mostrarMensaje("Parace que hay Datos incorrectos!");
             }

@@ -1,9 +1,9 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.*;
 
+// Patrón MVC
+// Herencia: esta clase extiende JFrame, heredando el comportamiento de una ventana en Java Swing
 public class Usuarios extends JFrame {
     private JTable TablaClientes;
     private JTextField txtNombre;
@@ -15,14 +15,19 @@ public class Usuarios extends JFrame {
     private JTextField txtTelefono;
     private JTextField txtCorreo;
     private JTextField txtUsuario;
+    private JButton btnGuardar;
+    private JPasswordField txtContraseña;
+    private JPasswordField txtConfirmar;
 
     private int selectedUserId = -1;
 
     public Usuarios() {
+        // Vista: esta clase representa la interfaz gráfica de gestión de usuarios
         inicializarForma();
         cargarUsuarios();
         configurarEventos();
         BtnSalir.addActionListener(e ->cerrarSesion());
+
     }
 
     private void inicializarForma() {
@@ -95,15 +100,89 @@ public class Usuarios extends JFrame {
                 txtTelefono.setText((String) TablaClientes.getValueAt(selectedRow, 3));
                 txtCorreo.setText((String) TablaClientes.getValueAt(selectedRow, 4));
                 txtUsuario.setText((String) TablaClientes.getValueAt(selectedRow, 5));
+
             }
         });
 
 
         BtnActualizar.addActionListener(e -> actualizarUsuario());
         BtnEliminar.addActionListener(e -> eliminarUsuario());
+        btnGuardar.addActionListener(e -> guardarUsuario());
+    }
+
+    private void guardarUsuario() {
+        // Controlador: Insertar un nuevo usuario apartir de los datos de la vista
+        String nombre = txtNombre.getText();
+        String apellido = txtApellido.getText();
+        String telefono = txtTelefono.getText();
+        String correo = txtCorreo.getText();
+        String usuario = txtUsuario.getText();
+        String contraseña = new String(txtContraseña.getPassword());
+        String confirmar = new String(txtConfirmar.getPassword());
+
+        if (nombre.isEmpty() || apellido.isEmpty() || telefono.isEmpty() || correo.isEmpty()
+                || usuario.isEmpty() || contraseña.isEmpty() || confirmar.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, complete todos los campos.");
+            return;
+        }
+
+        if (!contraseña.equals(confirmar)) {
+            JOptionPane.showMessageDialog(this, "Las contraseñas no coinciden.");
+            return;
+        }
+
+        try (Connection conn = Conexion.getConnection()) {
+
+            // Validar si el usuario ya existe
+            String checkQuery = "SELECT * FROM usuarios WHERE usuario = ?";
+            PreparedStatement checkStmt = conn.prepareStatement(checkQuery);
+            checkStmt.setString(1, usuario);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (rs.next()) {
+                JOptionPane.showMessageDialog(this, "El nombre de usuario ya está en uso.");
+                return;
+            }
+
+            // Insertar nuevo usuario
+            String insertQuery = "INSERT INTO usuarios (nombre, apellido, telefono, correo, usuario, contraseña) VALUES (?, ?, ?, ?, ?, ?)";
+            PreparedStatement insertStmt = conn.prepareStatement(insertQuery);
+
+            insertStmt.setString(1, nombre);
+            insertStmt.setString(2, apellido);
+            insertStmt.setString(3, telefono);
+            insertStmt.setString(4, correo);
+            insertStmt.setString(5, usuario);
+            insertStmt.setString(6, contraseña);
+
+            int filas = insertStmt.executeUpdate();
+            if (filas > 0) {
+                JOptionPane.showMessageDialog(this, "Usuario registrado exitosamente.");
+                limpiarCampos();
+                cargarUsuarios();
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al registrar el usuario.");
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error en la base de datos: " + ex.getMessage());
+        }
+    }
+
+    private void limpiarCampos() {
+        txtNombre.setText("");
+        txtApellido.setText("");
+        txtTelefono.setText("");
+        txtCorreo.setText("");
+        txtUsuario.setText("");
+        txtContraseña.setText("");
+        txtConfirmar.setText("");
     }
 
     private void actualizarUsuario() {
+        // Controlador: Actualizar un nuevo usuario apartir de los datos de la vista
         if (selectedUserId == -1) {
             JOptionPane.showMessageDialog(this, "Por favor, selecciona un Cliente para actualizar.");
             return;
@@ -153,6 +232,7 @@ public class Usuarios extends JFrame {
         }
     }
     private void eliminarUsuario() {
+        // Controlador: Eliminar un nuevo usuario apartir de los datos de la vista
         if (selectedUserId == -1) {
             JOptionPane.showMessageDialog(this, "Por favor, selecciona un Cliente para eliminar.");
             return;
